@@ -26,6 +26,8 @@ import {
   type Directness,
   type Evidence,
   type GameMode,
+  type Filters,
+  type Element,
 } from "@/lib/types";
 
 /** A relationship as the UI consumes it: the subject entity plus edge data. */
@@ -48,7 +50,10 @@ export interface ExplorerSectionData extends ExplorerSection {
 export interface MechanicExplorerData {
   mechanic: Mechanic;
   columns: Record<ExplorerColumn, ExplorerSectionData[]>;
+  /** Relationships shown after filtering. */
   total: number;
+  /** Relationships hidden by the active filters (for an honest empty state). */
+  filteredOut: number;
 }
 
 export async function listMechanics(): Promise<Mechanic[]> {
@@ -75,8 +80,41 @@ export async function getMechanicBySlug(
  * itself plus every published relationship pointing at it, fanned out into the
  * two-column section layout.
  */
+/**
+ * Decide whether a relationship survives the active class / subclass filters.
+ *
+ * Class: hide relations that are restricted to a *different* class, whether the
+ * restriction sits on the entity or in the relationship's condition.
+ * Subclass: keep element-agnostic subjects (mods, kinetic, none); otherwise the
+ * subject's element or a condition's required element/subclass must match.
+ */
+export function matchesFilters(rel: RelationView, filters: Filters): boolean {
+  if (filters.class) {
+    const entClass = rel.subject.classRestriction ?? "any";
+    if (entClass !== "any" && entClass !== filters.class) return false;
+    const condClass = rel.condition?.requiredClass ?? "any";
+    if (condClass !== "any" && condClass !== filters.class) return false;
+  }
+
+  if (filters.subclass) {
+    const el = (rel.subject.damageElement ?? "none") as Element;
+    const agnostic = el === "none" || el === "kinetic";
+    const condEl = rel.condition?.requiredElement;
+    const condSub = rel.condition?.requiredSubclass;
+    const matches =
+      agnostic ||
+      el === filters.subclass ||
+      condEl === filters.subclass ||
+      condSub === filters.subclass;
+    if (!matches) return false;
+  }
+
+  return true;
+}
+
 export async function getMechanicExplorer(
   slug: string,
+  filters: Filters = {},
 ): Promise<MechanicExplorerData | null> {
   const m = await getMechanicBySlug(slug);
   if (!m) return null;
@@ -105,6 +143,7 @@ export async function getMechanicExplorer(
     bySectionKey.set(s.key, { ...s, relations: [] });
   }
 
+  let filteredOut = 0;
   for (const row of rows) {
     const view: RelationView = {
       id: row.rel.id,
@@ -117,6 +156,10 @@ export async function getMechanicExplorer(
       condition: row.rel.condition,
       source: row.source ?? null,
     };
+    if (!matchesFilters(view, filters)) {
+      filteredOut++;
+      continue;
+    }
     const section = classifySection(
       row.rel.predicate,
       row.rel.directness,
@@ -140,7 +183,7 @@ export async function getMechanicExplorer(
     columns[s.column].push(data);
   }
 
-  return { mechanic: m, columns, total: rows.length };
+  return { mechanic: m, columns, total: rows.length - filteredOut, filteredOut };
 }
 
 const DIRECTNESS_RANK: Record<Directness, number> = {

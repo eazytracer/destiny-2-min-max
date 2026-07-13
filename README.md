@@ -65,12 +65,29 @@ cp .env.example .env     # default DATABASE_URL already matches pg:up
 npm run db:push          # drizzle-kit push — creates tables from src/db/schema.ts
 npm run db:seed          # loads the Ionic Trace graph
 
-# 5. Run it
+# 5. (Optional) Load real item icons from the Bungie Manifest
+#    Get a free key at https://www.bungie.net/en/Application and put it in .env
+#    (BUNGIE_API_KEY=...), then:
+npm run ingest:icons     # fills real icons/watermarks for the catalogued items
+
+# 6. Run it
 npm run dev              # http://localhost:3000
 ```
 
 Then open **http://localhost:3000/mechanics/ionic-trace** for the fully
 populated explorer.
+
+> **Icons.** Without `ingest:icons` the app shows emoji glyphs. After it runs,
+> relationship cards show each item's real Bungie icon with its season/rarity
+> watermark (DIM-style), hotlinked from the public `bungie.net` CDN. If you
+> re-pull the schema, run `npm run db:push` again first — it adds the
+> `icon_path` / `icon_watermark` columns.
+
+> **Filters.** Every page has a persistent **class + subclass** filter bar. The
+> selection lives in the URL (`?class=warlock&subclass=arc`), so any filtered
+> view is a shareable link. Filters hide relationships restricted to a different
+> class, and narrow to a subclass element (element-agnostic items like mods
+> always stay visible).
 
 > The local Postgres helper (`scripts/pg-dev.sh`) runs the server as your
 > current user with a socket inside `./.pgdata`, so it needs no root and no
@@ -86,6 +103,7 @@ populated explorer.
 | `npm run db:push` | Push `src/db/schema.ts` to the database |
 | `npm run db:generate` | Generate SQL migrations from the schema |
 | `npm run db:seed` | Load the curated seed dataset |
+| `npm run ingest:icons` | Fetch real item icons from the Manifest (needs `BUNGIE_API_KEY`) |
 | `npm run pg:up` / `pg:down` | Start / stop the local dev Postgres cluster |
 
 ---
@@ -99,11 +117,12 @@ src/
     mechanics/page.tsx      Mechanics index
     mechanics/[slug]/       Mechanic Explorer (the signature screen)
     data/page.tsx           Data & Sources
-  components/               TopBar, RelationCard
+  components/               TopBar, RelationCard, EntityIcon, FilterBar
   db/
     schema.ts               Drizzle schema — proposal §5 tables
     index.ts                Postgres client
     seed.ts                 Seed runner (resolves slug refs -> ids)
+  ingest/icons.ts           Targeted Manifest icon ingestion (Bungie CDN art)
   data/seed/dataset.ts      The curated Ionic Trace graph (hand-authored)
   lib/
     types.ts                Domain vocabulary + section classification (§4, §8.4)

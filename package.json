@@ -12,6 +12,7 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:seed": "tsx src/db/seed.ts",
+    "ingest:icons": "tsx src/ingest/icons.ts",
     "pg:up": "bash scripts/pg-dev.sh up",
     "pg:down": "bash scripts/pg-dev.sh down"
   },

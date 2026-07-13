@@ -46,7 +46,16 @@ export const entity = pgTable(
     name: text("name").notNull(),
     /** Official Bungie description text (kept separate from community text). */
     officialDescription: text("official_description"),
+    /** Emoji glyph fallback shown before/without real manifest art. */
     icon: text("icon"),
+    /**
+     * Bungie CDN icon path (relative, e.g. "/common/destiny2_content/icons/x.jpg").
+     * Rendered as `https://www.bungie.net{iconPath}`. Filled by the icon
+     * ingestion job from DestinyInventoryItemDefinition.displayProperties.icon.
+     */
+    iconPath: text("icon_path"),
+    /** Bungie CDN watermark overlay path (season / rarity), same base URL. */
+    iconWatermark: text("icon_watermark"),
     classRestriction: text("class_restriction").$type<GuardianClass>().default("any"),
     damageElement: text("damage_element").$type<Element>().default("none"),
     rarity: text("rarity"),

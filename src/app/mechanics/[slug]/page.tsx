@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMechanicExplorer, listMechanics } from "@/lib/queries";
 import { RelationCard } from "@/components/RelationCard";
-import { ELEMENT_LABEL, type Element } from "@/lib/types";
+import { FilterBar } from "@/components/FilterBar";
+import { ELEMENT_LABEL, parseFilters, type Element } from "@/lib/types";
 
 export async function generateStaticParams() {
   const mechanics = await listMechanics();
@@ -25,14 +26,17 @@ export async function generateMetadata({
 
 export default async function MechanicExplorerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { slug } = await params;
-  const data = await getMechanicExplorer(slug);
+  const filters = parseFilters(await searchParams);
+  const data = await getMechanicExplorer(slug, filters);
   if (!data) notFound();
 
-  const { mechanic: m, columns, total } = data;
+  const { mechanic: m, columns, total, filteredOut } = data;
   const el = (m.element ?? "none") as Element;
 
   const generateCount = columns.generate.reduce(
@@ -92,17 +96,35 @@ export default async function MechanicExplorerPage({
         </div>
       </header>
 
+      <FilterBar filters={filters} />
+
+      {filteredOut > 0 && total > 0 && (
+        <p className="filter-note">
+          Showing {total} of {total + filteredOut} — {filteredOut} hidden by the
+          active filters.
+        </p>
+      )}
+
       {total === 0 ? (
-        <div className="notice" style={{ marginTop: 24 }}>
-          Relationships for <strong>{m.name}</strong> are still being
-          catalogued. This mechanic exists in the ontology, but its typed
-          generators and consumers haven&rsquo;t been reviewed and published
-          yet. The{" "}
-          <Link href="/mechanics/ionic-trace" style={{ color: "var(--arc)" }}>
-            Ionic Trace explorer
-          </Link>{" "}
-          shows the fully populated view.
-        </div>
+        filteredOut > 0 ? (
+          <div className="notice" style={{ marginTop: 4 }}>
+            All {filteredOut} catalogued relationship
+            {filteredOut === 1 ? "" : "s"} for <strong>{m.name}</strong> are
+            hidden by the current filters. Try clearing the class or subclass
+            filter above.
+          </div>
+        ) : (
+          <div className="notice" style={{ marginTop: 4 }}>
+            Relationships for <strong>{m.name}</strong> are still being
+            catalogued. This mechanic exists in the ontology, but its typed
+            generators and consumers haven&rsquo;t been reviewed and published
+            yet. The{" "}
+            <Link href="/mechanics/ionic-trace" style={{ color: "var(--arc)" }}>
+              Ionic Trace explorer
+            </Link>{" "}
+            shows the fully populated view.
+          </div>
+        )
       ) : (
         <div className="explorer">
           {/* LEFT — generate / apply */}

@@ -1,9 +1,22 @@
 import Link from "next/link";
 import { listMechanics } from "@/lib/queries";
-import { ELEMENT_LABEL, type Element } from "@/lib/types";
+import { FilterBar } from "@/components/FilterBar";
+import {
+  ELEMENT_LABEL,
+  parseFilters,
+  filtersToQuery,
+  type Element,
+} from "@/lib/types";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const mechanics = await listMechanics();
+  const filters = parseFilters(await searchParams);
+  const qs = new URLSearchParams(filtersToQuery(filters)).toString();
+  const suffix = qs ? `?${qs}` : "";
 
   return (
     <div>
@@ -15,6 +28,8 @@ export default async function HomePage() {
         Every recommendation explains its trigger, restrictions, relationship
         type, and source.
       </p>
+
+      <FilterBar filters={filters} />
 
       <div className="entry-grid">
         {/* Build around an item — scaffolded; first live slice is the mechanic side. */}
@@ -55,7 +70,7 @@ export default async function HomePage() {
               return (
                 <Link
                   key={m.slug}
-                  href={`/mechanics/${m.slug}`}
+                  href={`/mechanics/${m.slug}${suffix}`}
                   className="chip"
                   data-el={el}
                 >
@@ -75,7 +90,10 @@ export default async function HomePage() {
 
       <p style={{ color: "var(--text-faint)", fontSize: 13 }}>
         Tip: the{" "}
-        <Link href="/mechanics/ionic-trace" style={{ color: "var(--arc)" }}>
+        <Link
+          href={`/mechanics/ionic-trace${suffix}`}
+          style={{ color: "var(--arc)" }}
+        >
           Ionic Trace explorer
         </Link>{" "}
         is the fully catalogued example.

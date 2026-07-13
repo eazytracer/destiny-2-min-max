@@ -71,11 +71,27 @@ Every relationship carries an `evidence` level and an optional
 is where raw Manifest/provider snapshots and checksums will land so definition
 changes can be audited. Seeded records are stamped with a `manifest_version`.
 
+## Graphics & filtering
+
+- **Icons (`src/ingest/icons.ts`).** A targeted ingestion downloads only
+  `DestinyInventoryItemDefinition`, indexes it by hash and name, and fills
+  `entity.icon_path` / `entity.icon_watermark` for catalogued items. `EntityIcon`
+  (client) renders the real bungie.net art with the watermark overlaid and falls
+  back to the emoji glyph on missing art or load error. This is the first slice
+  of §6's pipeline; full ingestion (all items, sockets, sets) still follows.
+- **Filters (`FilterBar`, `parseFilters`, `matchesFilters`).** Class + subclass
+  filters live in the URL query (`?class=&subclass=`) for shareable state (§9).
+  `matchesFilters` hides relationships restricted to a different class (checking
+  both the entity restriction and the relationship's condition) and narrows to a
+  subclass element while keeping element-agnostic items (mods, kinetic) visible.
+  `FilterBar` is given current filters as props and writes new ones via the
+  router, so it needs no `useSearchParams` (and thus no Suspense boundary).
+
 ## Deliberate deferrals
 
 | Proposal area | Status |
 | --- | --- |
-| Manifest ingestion pipeline (§6) | Schema ready; job not built |
+| Manifest ingestion pipeline (§6) | Icons ingested (targeted); full item/socket/set ingestion not built |
 | Weapon / family explorers (§8.2–8.3) | Not built |
 | Build Workspace (§8.5) | Not built (Phase 2) |
 | Bungie OAuth / owned-only (§3.2, Phase 2) | Not built |

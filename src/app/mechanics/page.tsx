@@ -1,13 +1,26 @@
 import Link from "next/link";
 import { listMechanics } from "@/lib/queries";
-import { ELEMENT_LABEL, type Element } from "@/lib/types";
+import { FilterBar } from "@/components/FilterBar";
+import {
+  ELEMENT_LABEL,
+  parseFilters,
+  filtersToQuery,
+  type Element,
+} from "@/lib/types";
 
 export const metadata = {
   title: "Mechanics · Synergy Explorer",
 };
 
-export default async function MechanicsIndex() {
+export default async function MechanicsIndex({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const mechanics = await listMechanics();
+  const filters = parseFilters(await searchParams);
+  const qs = new URLSearchParams(filtersToQuery(filters)).toString();
+  const suffix = qs ? `?${qs}` : "";
 
   return (
     <div>
@@ -18,13 +31,15 @@ export default async function MechanicsIndex() {
         everything that generates it and everything that benefits from it.
       </p>
 
+      <FilterBar filters={filters} />
+
       <div className="chips" style={{ marginTop: 24 }}>
         {mechanics.map((m) => {
           const el = (m.element ?? "none") as Element;
           return (
             <Link
               key={m.slug}
-              href={`/mechanics/${m.slug}`}
+              href={`/mechanics/${m.slug}${suffix}`}
               className="chip"
               data-el={el}
             >

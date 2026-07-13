@@ -47,6 +47,64 @@ export type Element =
 /** Guardian classes; `null`/`any` means unrestricted. */
 export type GuardianClass = "titan" | "hunter" | "warlock" | "any";
 
+/** Selectable classes for the filter bar (excludes the `any` sentinel). */
+export const GUARDIAN_CLASSES: Exclude<GuardianClass, "any">[] = [
+  "titan",
+  "hunter",
+  "warlock",
+];
+
+export const CLASS_LABEL: Record<GuardianClass, string> = {
+  titan: "Titan",
+  hunter: "Hunter",
+  warlock: "Warlock",
+  any: "Any class",
+};
+
+/** Elements that can be picked as a subclass in the filter bar. */
+export const SUBCLASS_ELEMENTS: Exclude<Element, "kinetic" | "none">[] = [
+  "arc",
+  "solar",
+  "void",
+  "stasis",
+  "strand",
+  "prismatic",
+];
+
+/** Active filters, carried in the URL query string for shareable state (§9). */
+export interface Filters {
+  class?: Exclude<GuardianClass, "any">;
+  subclass?: Exclude<Element, "kinetic" | "none">;
+}
+
+/** Parse filters out of a Next.js searchParams object. Unknown values drop. */
+export function parseFilters(
+  params: Record<string, string | string[] | undefined>,
+): Filters {
+  const cls = first(params.class);
+  const sub = first(params.subclass);
+  const filters: Filters = {};
+  if (cls && (GUARDIAN_CLASSES as string[]).includes(cls)) {
+    filters.class = cls as Filters["class"];
+  }
+  if (sub && (SUBCLASS_ELEMENTS as string[]).includes(sub)) {
+    filters.subclass = sub as Filters["subclass"];
+  }
+  return filters;
+}
+
+/** Serialize filters back into a URLSearchParams-ready query object. */
+export function filtersToQuery(filters: Filters): Record<string, string> {
+  const q: Record<string, string> = {};
+  if (filters.class) q.class = filters.class;
+  if (filters.subclass) q.subclass = filters.subclass;
+  return q;
+}
+
+function first(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v;
+}
+
 /**
  * Typed relationship predicates (proposal §4). The direction always reads
  * subject → predicate → object.

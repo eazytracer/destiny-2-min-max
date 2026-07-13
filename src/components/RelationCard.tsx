@@ -1,5 +1,6 @@
 import type { RelationView } from "@/lib/queries";
 import type { Mechanic } from "@/db/schema";
+import { EntityIcon } from "@/components/EntityIcon";
 import {
   DIRECTNESS_LABEL,
   ENTITY_TYPE_LABEL,
@@ -87,7 +88,13 @@ export function RelationCard({
   return (
     <article className="rel-card" data-el={el}>
       <div className="rel-top">
-        <span className="rel-glyph">{rel.subject.icon ?? "◆"}</span>
+        <EntityIcon
+          iconPath={rel.subject.iconPath}
+          iconWatermark={rel.subject.iconWatermark}
+          glyph={rel.subject.icon}
+          alt={rel.subject.name}
+          size={40}
+        />
         <div>
           <div className="rel-name">{rel.subject.name}</div>
           <div className="rel-type">
