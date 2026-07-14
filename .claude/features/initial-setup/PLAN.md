@@ -52,38 +52,63 @@ curated, versioned graph of *typed relationships*, not a copied item catalog.
 - `src/db/seed.ts` — idempotent seed runner (slug refs → ids).
 
 ### Ingestion
-- `src/ingest/icons.ts` — targeted icon ingestion: downloads only
-  `DestinyInventoryItemDefinition`, indexes by hash/name, fills real
-  icon/watermark paths for catalogued items. Needs free `BUNGIE_API_KEY`.
+- `src/ingest/manifest.ts` + `src/ingest/run.ts` — Manifest ingestion pipeline
+  (generalized from the old icon-only script). Pure, unit-tested helpers
+  (`indexDefs`, `matchEntity`, `normalizeEntity`, field extractors, `needsIngest`)
+  plus a thin DB runner. Downloads `DestinyInventoryItemDefinition`, matches
+  catalogued entities by hash/name, and enriches them with real icon/watermark
+  art plus backfilled element/rarity/item-type (never overwriting hand-authored
+  values). Records an `entity_version` snapshot + checksum per entity and skips
+  unchanged Manifest versions (`-- --force` overrides). Run with
+  `npm run ingest:manifest` (needs free `BUNGIE_API_KEY`).
 
 ### UI (proposal §8, §9)
 - Explore home, Mechanics index, the signature **two-column Mechanic Explorer**
-  (generate/apply ↔ spend/benefit) with directness/evidence badges, condition
-  detail, relationship path, and empty/filtered states; Data & Sources page.
+  (generate/apply ↔ spend/benefit) with empty/filtered states; Data & Sources.
+- **Condensed, DIM-like overview:** each explorer section is a grid of item
+  icons (`RelationChip`) carrying a directness corner-dot; hover/focus opens a
+  popover with the full detailed `RelationCard` (explanation, relationship path,
+  condition, directness/evidence/source). The popover anchors toward the centre
+  gutter so it never clips off-screen. Clicking an icon opens the item dossier.
+- **Item dossier page** (`/items/[slug]`): art, description, element/rarity/type,
+  and every relationship the item participates in, oriented toward the mechanic
+  (`ItemRelationRow`) and ranked most-certain-first.
 - `EntityIcon` (real bungie.net art + watermark, emoji fallback), `FilterBar`
-  (persistent class/subclass, URL state), `RelationCard`, `TopBar`.
+  (persistent class/subclass, URL state), `RelationCard`, `TopBar`. Condition
+  formatting shared via `src/lib/relation-format.ts`.
 - Destiny-flavored dark theme with per-element accents.
 
 ### Tooling & docs
-- `scripts/pg-dev.sh` (rootless local Postgres, no Docker), `.env.example`,
-  README, `docs/ARCHITECTURE.md`, `docs/PROPOSAL.md`.
+- `scripts/pg-dev.sh` (rootless local Postgres, auto-detects the PG version),
+  `.env.example`, README, `docs/ARCHITECTURE.md`, `docs/PROPOSAL.md`.
+- **Vitest** unit tests (`npm run test`) — ingestion helpers and relation
+  formatters; specs live beside source as `*.test.ts`.
+- **Devcontainer** (`.devcontainer/`): `setup.sh` is the single build entrypoint
+  (Claude Code, gh, PostgreSQL, Node deps, and `agent-browser` with an ARM64
+  Chromium via Playwright + a registered MCP server for in-container browser
+  access — `postCreateCommand` runs it).
 
 ### Verification status (honest)
-Because the cloud sandbox blocks the npm registry and `bungie.net`, `next build`
-/ `tsc` and the live Manifest fetch **could not be run here**. Verified
-dependency-free and passing: `classifySection()` and filter parse/serialize over
-representative cases (Node strip-types); the §5 DDL + the exact explorer
-join/classification query against local PostgreSQL 16 (Riskrunner correctly under
-Production enablers). React rendering and `ingest:icons` are exercised on a local
-`npm run dev` — treat the first local `npm run typecheck` as the final gate.
+Now developed in an Ubuntu devcontainer (`.devcontainer/`) with local
+PostgreSQL 18. Verified this session: `npm run typecheck` passes; `npm run test`
+green (31 tests); the live Manifest ingestion ran against `bungie.net` and
+enriched all 7 resolvable catalogued entities with real art + `entity_version`
+provenance (version-skip and `--force` idempotency confirmed); and the explorer,
+hover popovers, and item dossier pages were driven and screenshotted in a real
+browser via `agent-browser` — which surfaced (and led to fixing) a popover
+edge-clip bug.
 
 ---
 
 ## 4. Known gaps / risks to watch
-- **Icon ingestion unrun here** — Manifest watermark field location varies across
-  versions; verify `ingest:icons` output locally and pin exact hashes on any
-  "not matched" items.
-- **No compile gate in-session** — run `npm run typecheck` locally after pulling.
+- **Ingestion is enrichment-only so far** — it enriches the *curated* catalog by
+  hash/name; full-catalog normalization (all items → `entity`, and SandboxPerk /
+  PlugSet / Artifact / ItemSet → `socket_option` / `set_bonus`) is still pending
+  (§6). Watermark field location can vary across Manifest versions; pin exact
+  hashes in `dataset.ts` on any "not matched" items.
+- **Schema drift after a pull** — `drizzle-kit push` can fail on incremental
+  primary-key diffs; for the dev DB, `DROP SCHEMA public CASCADE; CREATE SCHEMA
+  public;` then `db:push` + `db:seed` (data is reproducible from the seed).
 - **Single mechanic populated** — only Ionic Trace has a full graph; other
   mechanics are header-only until curated.
 - **Relationship accuracy** — post-Monument-of-Triumph values are labelled
@@ -94,18 +119,20 @@ Production enablers). React rendering and `ingest:icons` are exercised on a loca
 ## 5. Planned next steps
 
 ### Near-term (next few sessions)
-1. **Local compile + run gate** — `npm run typecheck`, fix anything the compiler
-   surfaces, confirm `dev` renders icons and filters. *(Blocking any further UI.)*
-2. **Full Manifest ingestion (§6)** — generalize `ingest/icons.ts` into a real
-   pipeline: poll `GetDestinyManifest`, diff versions, download + normalize
+1. ✅ **Local compile + run gate** — done; typecheck + tests are green in the
+   devcontainer and the app renders real icons and filters.
+2. **Full Manifest ingestion (§6)** — *foundation done* (`ingest/manifest.ts` +
+   `run.ts`: version-aware download, hash/name matching, catalog enrichment,
+   `entity_version` provenance). *Remaining:* normalize the **whole**
    `DestinyInventoryItemDefinition` (+ SandboxPerk, PlugSet, Artifact, ItemSet)
-   into `entity` / `socket_option` / `set_bonus`, stamping `entity_version`.
-   Reconcile the curated `relation` rows onto ingested entities by hash.
+   into `entity` / `socket_option` / `set_bonus`, and reconcile curated
+   `relation` rows onto ingested entities by hash.
 3. **Expand the mechanic ontology** — curate graphs for Jolt, Armor Charge, Orbs
    of Power, Scorch, Stasis Crystals (target ~25–40 mechanics per §10). Gives the
    class/subclass filters more to work with.
-4. **Entity detail drawer (§8.6)** — click a card → drawer with Overview /
-   Community Insight / Relationships / History & sources tabs.
+4. ✅ **Item dossier page** — shipped as a page (`/items/[slug]`) rather than a
+   drawer. A richer §8.6 drawer with Overview / Community Insight / Relationships
+   / History tabs could layer on later if needed.
 
 ### Mid-term (Phase 1 completion, §10)
 5. **Weapon & Weapon-family explorers (§8.2–8.3)** — the "start with an item"
@@ -134,12 +161,13 @@ Production enablers). React rendering and `ingest:icons` are exercised on a loca
 ---
 
 ## 6. Immediate next action
-Pick one to start the next session:
-- **(A)** Full Manifest ingestion (unlocks all icons + the item explorers), or
-- **(B)** Expand the mechanic graph (Jolt / Armor Charge) so filters + explorer
-  have more depth, or
-- **(C)** Entity detail drawer for richer per-item context.
+The compile gate, ingestion foundation, condensed explorer, and item dossier are
+now shipped. Pick one to start the next session:
+- **(A)** Full-catalog Manifest ingestion — extend the pipeline from
+  enrichment-only to normalizing the whole item table (+ sockets/sets) into
+  `entity` / `socket_option` / `set_bonus`. Unlocks the weapon explorers.
+- **(B)** Expand the mechanic graph (Jolt / Armor Charge / Orbs of Power) so the
+  condensed explorer and filters have real depth across more mechanics.
 
-Recommended: **(A)** — it is the highest-leverage foundation and everything
-downstream (weapon explorer, search, ownership) depends on real ingested
-entities.
+Recommended: **(B)** for immediate, visible payoff now that the explorer is more
+scannable — then **(A)** as the foundation the weapon explorer + search depend on.

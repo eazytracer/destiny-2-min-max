@@ -8,7 +8,15 @@
 #   scripts/pg-dev.sh status  # is it running?
 set -euo pipefail
 
-PGBIN="${PGBIN:-/usr/lib/postgresql/16/bin}"
+# Resolve the postgres server binaries. Honour an explicit PGBIN, otherwise
+# pick the highest-numbered version installed under /usr/lib/postgresql
+# (Debian/Ubuntu layout), falling back to whatever is on PATH.
+if [ -z "${PGBIN:-}" ]; then
+  for d in $(ls -d /usr/lib/postgresql/*/bin 2>/dev/null | sort -V -r); do
+    if [ -x "$d/pg_ctl" ]; then PGBIN="$d"; break; fi
+  done
+  PGBIN="${PGBIN:-$(dirname "$(command -v pg_ctl 2>/dev/null || echo /usr/bin/pg_ctl)")}"
+fi
 PGDATA="${PGDATA:-$(cd "$(dirname "$0")/.." && pwd)/.pgdata}"
 PGPORT="${PGPORT:-5432}"
 PGHOST="127.0.0.1"

@@ -9,10 +9,12 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:seed": "tsx src/db/seed.ts",
-    "ingest:icons": "tsx src/ingest/icons.ts",
+    "ingest:manifest": "tsx src/ingest/run.ts",
     "pg:up": "bash scripts/pg-dev.sh up",
     "pg:down": "bash scripts/pg-dev.sh down"
   },
@@ -29,6 +31,7 @@
     "@types/react-dom": "^19.0.3",
     "drizzle-kit": "^0.28.1",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.10"
   }
 }

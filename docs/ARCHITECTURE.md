@@ -67,18 +67,23 @@ the app refuses to imply "Arc weapon = Ionic Trace source."
 ## Provenance & versioning (proposal §5.2, §3.7)
 
 Every relationship carries an `evidence` level and an optional
-`source_attribution`. The `entity_version` table (present, unused by the slice)
-is where raw Manifest/provider snapshots and checksums will land so definition
+`source_attribution`. The `entity_version` table receives a raw Manifest
+snapshot + checksum for every entity the ingestion enriches, so definition
 changes can be audited. Seeded records are stamped with a `manifest_version`.
 
 ## Graphics & filtering
 
-- **Icons (`src/ingest/icons.ts`).** A targeted ingestion downloads only
-  `DestinyInventoryItemDefinition`, indexes it by hash and name, and fills
-  `entity.icon_path` / `entity.icon_watermark` for catalogued items. `EntityIcon`
-  (client) renders the real bungie.net art with the watermark overlaid and falls
-  back to the emoji glyph on missing art or load error. This is the first slice
-  of §6's pipeline; full ingestion (all items, sockets, sets) still follows.
+- **Manifest ingestion (`src/ingest/`).** `manifest.ts` holds the Bungie client
+  plus pure, unit-tested helpers (`indexDefs`, `matchEntity`, `normalizeEntity`,
+  field extractors, `needsIngest`); `run.ts` is the DB runner. It downloads
+  `DestinyInventoryItemDefinition`, indexes it by hash and name, and enriches
+  catalogued entities — real `icon_path` / `icon_watermark`, plus backfilled
+  element / rarity / item-type where the curator left them empty — recording an
+  `entity_version` snapshot per entity and skipping unchanged Manifest versions.
+  `EntityIcon` (client) renders the real bungie.net art with the watermark
+  overlaid and falls back to the emoji glyph on missing art or load error. This
+  is the first slice of §6's pipeline; full ingestion (all items, sockets, sets)
+  still follows.
 - **Filters (`FilterBar`, `parseFilters`, `matchesFilters`).** Class + subclass
   filters live in the URL query (`?class=&subclass=`) for shareable state (§9).
   `matchesFilters` hides relationships restricted to a different class (checking

@@ -1,0 +1,25 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+{
+	"name": "Ubuntu",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "mcr.microsoft.com/devcontainers/base:resolute",
+	"features": {
+		"ghcr.io/devcontainers/features/node:2": {},
+		"ghcr.io/devcontainers/features/python:1": {},
+		"ghcr.io/devcontainer-community/devcontainer-features/astral.sh-uv:1": {}
+	},
+
+	// Single build entrypoint: installs Claude Code, gh, agent-browser (+ ARM64
+	// Chromium and its MCP server), PostgreSQL, and the Node deps. See setup.sh.
+	"postCreateCommand": "bash .devcontainer/setup.sh",
+
+	// The Next.js dev server listens on 3000.
+	"forwardPorts": [3000]
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}

@@ -363,6 +363,83 @@ h2 {
   font-weight: 600;
 }
 
+/* --- Compact relation chips (DIM-like overview) ------------------- */
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.rel-chip {
+  position: relative;
+}
+.rel-chip-btn {
+  display: block;
+  position: relative;
+  border-radius: 9px;
+  outline: none;
+  transition: transform 0.12s;
+}
+.rel-chip-btn:hover,
+.rel-chip-btn:focus-visible {
+  transform: translateY(-2px);
+}
+.rel-chip-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--el, var(--arc));
+}
+/* Directness dot — keeps the certainty signal in the condensed view. */
+.rel-chip-dot {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+}
+.rel-chip-dot.direct {
+  background: var(--direct);
+}
+.rel-chip-dot.conditional {
+  background: var(--conditional);
+}
+.rel-chip-dot.indirect {
+  background: var(--indirect);
+}
+.rel-chip-dot.inferred {
+  background: var(--inferred);
+}
+
+/* Hover/focus popover: reuses the full RelationCard as its body. */
+.rel-popover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 320px;
+  max-width: 78vw;
+  padding-top: 8px; /* transparent bridge so hover survives the gap */
+  z-index: 50;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.12s;
+}
+/* Open each column's popover toward the centre gutter so it never clips off
+   the page edge. */
+.rel-chip[data-col="benefit"] .rel-popover {
+  left: auto;
+  right: 0;
+}
+.rel-chip:hover .rel-popover,
+.rel-chip:focus-within .rel-popover {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+.rel-popover .rel-card {
+  margin-bottom: 0;
+  box-shadow: 0 12px 32px -10px #000;
+}
+
 /* --- Relationship card -------------------------------------------- */
 .rel-card {
   background: var(--bg-card);
@@ -388,6 +465,23 @@ h2 {
 .rel-name {
   font-weight: 600;
   font-size: 14.5px;
+  display: inline-block;
+}
+.rel-name.link:hover {
+  color: var(--el, var(--arc));
+  text-decoration: underline;
+}
+.mech-mini-glyph {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  line-height: 1;
+  background: color-mix(in srgb, var(--el) 18%, var(--bg-raised));
+  border: 1px solid color-mix(in srgb, var(--el) 30%, var(--border));
 }
 .rel-type {
   font-size: 12px;

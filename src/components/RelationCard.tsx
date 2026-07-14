@@ -1,6 +1,8 @@
+import Link from "next/link";
 import type { RelationView } from "@/lib/queries";
 import type { Mechanic } from "@/db/schema";
 import { EntityIcon } from "@/components/EntityIcon";
+import { conditionRows, triggerPhrase } from "@/lib/relation-format";
 import {
   DIRECTNESS_LABEL,
   ENTITY_TYPE_LABEL,
@@ -8,52 +10,7 @@ import {
   ELEMENT_LABEL,
   type ExplorerColumn,
   type Element,
-  type RelationCondition,
 } from "@/lib/types";
-
-/** Short, human phrase for the condition that gates a relationship. */
-function triggerPhrase(cond: RelationCondition | null): string | null {
-  if (!cond) return null;
-  if (cond.triggerType) return cond.triggerType;
-  if (cond.targetDebuff) return `defeat ${cond.targetDebuff} target`;
-  if (cond.requiredBuff) return `with ${cond.requiredBuff}`;
-  if (cond.finalBlow && cond.requiredElement) {
-    return `${ELEMENT_LABEL[cond.requiredElement]} weapon final blow`;
-  }
-  if (cond.finalBlow) return "final blow";
-  return null;
-}
-
-function conditionRows(cond: RelationCondition): { label: string; value: string }[] {
-  const rows: { label: string; value: string }[] = [];
-  if (cond.requiredClass && cond.requiredClass !== "any")
-    rows.push({ label: "Class", value: cap(cond.requiredClass) });
-  if (cond.requiredSubclass)
-    rows.push({ label: "Subclass", value: ELEMENT_LABEL[cond.requiredSubclass] });
-  if (cond.requiredElement)
-    rows.push({ label: "Weapon element", value: ELEMENT_LABEL[cond.requiredElement] });
-  if (cond.requiredWeaponFamily)
-    rows.push({ label: "Weapon family", value: cond.requiredWeaponFamily });
-  if (cond.targetDebuff)
-    rows.push({ label: "Target", value: `${cond.targetDebuff}` });
-  if (cond.requiredBuff)
-    rows.push({ label: "Requires", value: cond.requiredBuff });
-  if (cond.chancePercent !== undefined)
-    rows.push({ label: "Chance", value: `${cond.chancePercent}%` });
-  if (cond.cooldownSeconds !== undefined)
-    rows.push({ label: "Cooldown", value: `${cond.cooldownSeconds}s` });
-  if (cond.durationSeconds !== undefined)
-    rows.push({ label: "Duration", value: `${cond.durationSeconds}s` });
-  if (cond.stackCap !== undefined)
-    rows.push({ label: "Stack cap", value: `${cond.stackCap}` });
-  if (cond.activityRestriction)
-    rows.push({ label: "Activity", value: cond.activityRestriction });
-  return rows;
-}
-
-function cap(s: string) {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
 
 export function RelationCard({
   rel,
@@ -96,7 +53,9 @@ export function RelationCard({
           size={40}
         />
         <div>
-          <div className="rel-name">{rel.subject.name}</div>
+          <Link href={`/items/${rel.subject.slug}`} className="rel-name link">
+            {rel.subject.name}
+          </Link>
           <div className="rel-type">
             {ENTITY_TYPE_LABEL[rel.subject.entityType]}
             {rel.subject.damageElement && rel.subject.damageElement !== "none"

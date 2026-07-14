@@ -56,8 +56,70 @@ export interface MechanicExplorerData {
   filteredOut: number;
 }
 
+/** One of an item's relationships, oriented toward the mechanic it touches. */
+export interface EntityRelationView {
+  id: number;
+  predicate: Predicate;
+  directness: Directness;
+  evidence: Evidence;
+  mode: GameMode;
+  explanation: string;
+  condition: RelationCondition | null;
+  source: SourceAttribution | null;
+  mechanic: Mechanic;
+}
+
 export async function listMechanics(): Promise<Mechanic[]> {
   return db.select().from(mechanic).orderBy(asc(mechanic.name));
+}
+
+export async function getEntityBySlug(slug: string): Promise<Entity | null> {
+  const rows = await db
+    .select()
+    .from(entity)
+    .where(eq(entity.slug, slug))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/**
+ * Every published relationship this entity participates in, each paired with
+ * the mechanic on the other end, ranked most-certain first.
+ */
+export async function getEntityRelations(
+  entityId: number,
+): Promise<EntityRelationView[]> {
+  const rows = await db
+    .select({ rel: relation, mechanic, source: sourceAttribution })
+    .from(relation)
+    .innerJoin(mechanic, eq(relation.objectId, mechanic.id))
+    .leftJoin(sourceAttribution, eq(relation.sourceId, sourceAttribution.id))
+    .where(
+      and(
+        eq(relation.subjectSide, "entity"),
+        eq(relation.subjectId, entityId),
+        eq(relation.objectSide, "mechanic"),
+        eq(relation.editorialStatus, "published"),
+      ),
+    );
+
+  return rows
+    .map((row) => ({
+      id: row.rel.id,
+      predicate: row.rel.predicate,
+      directness: row.rel.directness,
+      evidence: row.rel.evidence,
+      mode: row.rel.mode,
+      explanation: row.rel.explanation,
+      condition: row.rel.condition,
+      source: row.source ?? null,
+      mechanic: row.mechanic,
+    }))
+    .sort(
+      (a, b) =>
+        DIRECTNESS_RANK[a.directness] - DIRECTNESS_RANK[b.directness] ||
+        EVIDENCE_RANK[a.evidence] - EVIDENCE_RANK[b.evidence],
+    );
 }
 
 export async function listSources(): Promise<SourceAttribution[]> {

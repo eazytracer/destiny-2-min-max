@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMechanicExplorer, listMechanics } from "@/lib/queries";
-import { RelationCard } from "@/components/RelationCard";
+import { RelationChip } from "@/components/RelationChip";
 import { FilterBar } from "@/components/FilterBar";
 import { ELEMENT_LABEL, parseFilters, type Element } from "@/lib/types";
 
@@ -139,14 +139,16 @@ export default async function MechanicExplorerPage({
               columns.generate.map((section) => (
                 <div className="section" key={section.key}>
                   <h3 className="section-title">{section.title}</h3>
-                  {section.relations.map((rel) => (
-                    <RelationCard
-                      key={rel.id}
-                      rel={rel}
-                      mechanic={m}
-                      column="generate"
-                    />
-                  ))}
+                  <div className="chip-grid">
+                    {section.relations.map((rel) => (
+                      <RelationChip
+                        key={rel.id}
+                        rel={rel}
+                        mechanic={m}
+                        column="generate"
+                      />
+                    ))}
+                  </div>
                 </div>
               ))
             )}
@@ -164,14 +166,16 @@ export default async function MechanicExplorerPage({
               columns.benefit.map((section) => (
                 <div className="section" key={section.key}>
                   <h3 className="section-title">{section.title}</h3>
-                  {section.relations.map((rel) => (
-                    <RelationCard
-                      key={rel.id}
-                      rel={rel}
-                      mechanic={m}
-                      column="benefit"
-                    />
-                  ))}
+                  <div className="chip-grid">
+                    {section.relations.map((rel) => (
+                      <RelationChip
+                        key={rel.id}
+                        rel={rel}
+                        mechanic={m}
+                        column="benefit"
+                      />
+                    ))}
+                  </div>
                 </div>
               ))
             )}
